@@ -2206,11 +2206,10 @@ local rates = {
 }
 
 -- Crear los 5 folders
-local strengthFolder = calculator:AddFolder("💪 Strength")
-local durabilityFolder = calculator:AddFolder("🛡️ Durability") 
-local rebirthsFolder = calculator:AddFolder("🔄 Rebirths")
-local killsFolder = calculator:AddFolder("⚔️ Kills")
-local controlFolder = calculator:AddFolder("🎛️ Control")
+local strengthFolder = calculator:AddFolder("  💪 Strength")
+local durabilityFolder = calculator:AddFolder("  🛡️ Durability") 
+local rebirthsFolder = calculator:AddFolder("  🔄 Rebirths")
+local killsFolder = calculator:AddFolder("  ⚔️ Kills")
 
 -- Función para obtener valor actual de estadística
 local function getCurrentValue(statName)
@@ -2377,14 +2376,6 @@ local function restartAll()
     end
     print("🔄 Calculator reiniciado")
 end
-
--- Botón para reiniciar en el folder de control
-controlFolder:AddButton({
-    Text = "🔄 Reiniciar Todo",
-    Callback = function()
-        restartAll()
-    end
-})
 
 -- Función principal de cálculo
 local function calculateRates()
