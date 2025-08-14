@@ -2468,15 +2468,38 @@ local chaosSorcererToggle = damageFolder:AddToggle("Chaos Sorcerer", false, func
     calculateDamage()
 end)
 
--- Input para fuerza base
+-- TextBox para fuerza base con cálculo automático
 local strengthInput = damageFolder:AddTextBox("Base Strength (e.g., 1T)", "Enter strength", function(text)
     calculateDamage()
 end)
 
--- Labels para mostrar damage con diferentes cantidades de pets
+-- Labels para mostrar damage con diferentes cantidades de pets (8 filas)
 local damageLabels = {}
 for i = 1, 8 do
     damageLabels[i] = damageFolder:AddLabel(i .. " Pet(s): 0")
+end
+
+-- DURABILITY CALCULATOR
+local durabilityFolder = calculator:AddFolder("Durability Calculator")
+
+-- Pet selections para durability
+local mightyMonsterToggle = durabilityFolder:AddToggle("Mighty Monster", false, function(state)
+    calculateDurability()
+end)
+
+local smallFriedToggle = durabilityFolder:AddToggle("Small Fried", false, function(state)
+    calculateDurability()
+end)
+
+-- TextBox para durability base con cálculo automático
+local durabilityInput = durabilityFolder:AddTextBox("Base Durability (e.g., 1T)", "Enter durability", function(text)
+    calculateDurability()
+end)
+
+-- Labels para mostrar durability boost con diferentes cantidades de pets (8 filas)
+local durabilityLabels = {}
+for i = 1, 8 do
+    durabilityLabels[i] = durabilityFolder:AddLabel(i .. " Pet(s): 0")
 end
 
 -- Función para convertir texto a número (maneja T, B, M, K)
@@ -2501,7 +2524,7 @@ local function parseNumber(text)
 end
 
 -- Función para formatear número de vuelta a texto
-local function formatDamageNumber(num)
+local function formatNumber(num)
     if num >= 1e12 then
         return string.format("%.2fT", num / 1e12)
     elseif num >= 1e9 then
@@ -2515,7 +2538,7 @@ local function formatDamageNumber(num)
     end
 end
 
--- Función para calcular damage
+-- Función para calcular damage (se ejecuta automáticamente al escribir)
 function calculateDamage()
     local baseStrength = parseNumber(strengthInput.Text)
     if baseStrength == 0 then
@@ -2528,6 +2551,7 @@ function calculateDamage()
     local wildWizardActive = wildWizardToggle.Value
     local chaosSorcererActive = chaosSorcererToggle.Value
     
+    -- Calcular para cada cantidad de pets (1-8 filas)
     for petCount = 1, 8 do
         -- Porcentaje base de damage: 10%
         local baseDamagePercent = 0.10
@@ -2545,34 +2569,11 @@ function calculateDamage()
         end
         
         local finalDamage = baseStrength * totalDamagePercent
-        damageLabels[petCount].Text = petCount .. " Pet(s): " .. formatDamageNumber(finalDamage)
+        damageLabels[petCount].Text = petCount .. " Pet(s): " .. formatNumber(finalDamage)
     end
 end
 
--- DURABILITY CALCULATOR
-local durabilityFolder = calculator:AddFolder("Durability Calculator")
-
--- Pet selections para durability
-local mightyMonsterToggle = durabilityFolder:AddToggle("Mighty Monster", false, function(state)
-    calculateDurability()
-end)
-
-local smallFriedToggle = durabilityFolder:AddToggle("Small Fried", false, function(state)
-    calculateDurability()
-end)
-
--- Input para durability base
-local durabilityInput = durabilityFolder:AddTextBox("Base Durability (e.g., 1T)", "Enter durability", function(text)
-    calculateDurability()
-end)
-
--- Labels para mostrar durability boost con diferentes cantidades de pets
-local durabilityLabels = {}
-for i = 1, 8 do
-    durabilityLabels[i] = durabilityFolder:AddLabel(i .. " Pet(s): 0")
-end
-
--- Función para calcular durability boost
+-- Función para calcular durability (se ejecuta automáticamente al escribir)
 function calculateDurability()
     local baseDurability = parseNumber(durabilityInput.Text)
     if baseDurability == 0 then
@@ -2585,6 +2586,7 @@ function calculateDurability()
     local mightyMonsterActive = mightyMonsterToggle.Value
     local smallFriedActive = smallFriedToggle.Value
     
+    -- Calcular para cada cantidad de pets (1-8 filas)
     for petCount = 1, 8 do
         -- Porcentaje base de durability: 75%
         local baseDurabilityPercent = 0.75
@@ -2602,6 +2604,10 @@ function calculateDurability()
         end
         
         local finalDurabilityBoost = baseDurability * totalDurabilityPercent
-        durabilityLabels[petCount].Text = petCount .. " Pet(s): " .. formatDamageNumber(finalDurabilityBoost)
+        durabilityLabels[petCount].Text = petCount .. " Pet(s): " .. formatNumber(finalDurabilityBoost)
     end
 end
+
+-- Inicializar cálculos
+calculateDamage()
+calculateDurability()
