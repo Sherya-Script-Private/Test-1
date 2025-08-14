@@ -45,6 +45,7 @@ local farmTab = window:AddTab("Farm")
 local miscTab = window:AddTab("Misc")
 local pets = window:AddTab("Pets")
 local Stats = window:AddTab("Stats")
+local calculator = window:AddTab("Calculator")
 local Killing = window:AddTab("Killer")
 local Teleport = window:AddTab("Teleport")
 local creditsTab = window:AddTab("Credits")
@@ -2181,3 +2182,461 @@ game.Players.LocalPlayer.AncestryChanged:Connect(function()
         clearLookupConnections()
     end
 end)
+
+local calculator = window:AddTab("Calculator")
+
+-- Variables para rastrear valores anteriores y tiempo
+local previousValues = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+local lastUpdateTime = tick()
+local rates = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+-- Crear folders para cada estadística
+local strengthFolder = calculator:AddFolder("Strength Calculator")
+local durabilityFolder = calculator:AddFolder("Durability Calculator")
+local rebirthsFolder = calculator:AddFolder("Rebirths Calculator")
+local killsFolder = calculator:AddFolder("Kills Calculator")
+
+-- Labels para Strength
+local strengthLabels = {
+    perMinute = strengthFolder:AddLabel("Per Minute: 0"),
+    perHour = strengthFolder:AddLabel("Per Hour: 0"),
+    perDay = strengthFolder:AddLabel("Per Day: 0"),
+    perWeek = strengthFolder:AddLabel("Per Week: 0"),
+    perMonth = strengthFolder:AddLabel("Per Month: 0")
+}
+
+-- Labels para Durability
+local durabilityLabels = {
+    perMinute = durabilityFolder:AddLabel("Per Minute: 0"),
+    perHour = durabilityFolder:AddLabel("Per Hour: 0"),
+    perDay = durabilityFolder:AddLabel("Per Day: 0"),
+    perWeek = durabilityFolder:AddLabel("Per Week: 0"),
+    perMonth = durabilityFolder:AddLabel("Per Month: 0")
+}
+
+-- Labels para Rebirths
+local rebirthsLabels = {
+    perMinute = rebirthsFolder:AddLabel("Per Minute: 0"),
+    perHour = rebirthsFolder:AddLabel("Per Hour: 0"),
+    perDay = rebirthsFolder:AddLabel("Per Day: 0"),
+    perWeek = rebirthsFolder:AddLabel("Per Week: 0"),
+    perMonth = rebirthsFolder:AddLabel("Per Month: 0")
+}
+
+-- Labels para Kills
+local killsLabels = {
+    perMinute = killsFolder:AddLabel("Per Minute: 0"),
+    perHour = killsFolder:AddLabel("Per Hour: 0"),
+    perDay = killsFolder:AddLabel("Per Day: 0"),
+    perWeek = killsFolder:AddLabel("Per Week: 0"),
+    perMonth = killsFolder:AddLabel("Per Month: 0")
+}
+
+-- Función para formatear números grandes
+local function formatNumber(num)
+    return tostring(math.floor(num * 100) / 100) -- Redondear a 2 decimales
+end
+
+-- Función para actualizar las labels de una estadística específica
+local function updateLabels(labels, rate, statName)
+    local perMinute = rate
+    local perHour = rate * 60
+    local perDay = rate * 60 * 24
+    local perWeek = rate * 60 * 24 * 7
+    local perMonth = rate * 60 * 24 * 30
+    
+    labels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+    labels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+    labels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+    labels.perWeek.Text = "Per Week: " .. formatNumber(perWeek)
+    labels.perMonth.Text = "Per Month: " .. formatNumber(perMonth)
+end
+
+-- Función principal para calcular rates
+local function calculateRates()
+    local player = game.Players.LocalPlayer
+    if not player then return end
+    
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return end
+    
+    -- Obtener estadísticas actuales
+    local currentTime = tick()
+    local timeDifference = currentTime - lastUpdateTime
+    
+    -- Solo calcular si ha pasado al menos 1 segundo
+    if timeDifference >= 1 then
+        -- Obtener valores actuales
+        local strengthStat = leaderstats:FindFirstChild("Strength")
+        local durabilityStat = player:FindFirstChild("Durability")
+        local rebirthsStat = leaderstats:FindFirstChild("Rebirths")
+        local killsStat = leaderstats:FindFirstChild("Kills")
+        
+        local currentValues = {
+            Strength = strengthStat and strengthStat.Value or 0,
+            Durability = durabilityStat and durabilityStat.Value or 0,
+            Rebirths = rebirthsStat and rebirthsStat.Value or 0,
+            Kills = killsStat and killsStat.Value or 0
+        }
+        
+        -- Calcular rates (por minuto)
+        for statName, currentValue in pairs(currentValues) do
+            local difference = currentValue - previousValues[statName]
+            local ratePerSecond = difference / timeDifference
+            rates[statName] = ratePerSecond * 60 -- Convertir a por minuto
+            previousValues[statName] = currentValue
+        end
+        
+        -- Actualizar labels
+        updateLabels(strengthLabels, rates.Strength, "Strength")
+        updateLabels(durabilityLabels, rates.Durability, "Durability")
+        updateLabels(rebirthsLabels, rates.Rebirths, "Rebirths")
+        updateLabels(killsLabels, rates.Kills, "Kills")
+        
+        lastUpdateTime = currentTime
+    end
+end
+
+-- Inicializar valores previos
+spawn(function()
+    wait(2) -- Esperar a que todo se cargue
+    local player = game.Players.LocalPlayer
+    if player then
+        local leaderstats = player:WaitForChild("leaderstats", 10)
+        if leaderstats then
+            local strengthStat = leaderstats:FindFirstChild("Strength")
+            local durabilityStat = player:FindFirstChild("Durability")
+            local rebirthsStat = leaderstats:FindFirstChild("Rebirths")
+            local killsStat = leaderstats:FindFirstChild("Kills")
+            
+            previousValues.Strength = strengthStat and strengthStat.Value or 0
+            previousValues.Durability = durabilityStat and durabilityStat.Value or 0
+            previousValues.Rebirths = rebirthsStat and rebirthsStat.Value or 0
+            previousValues.Kills = killsStat and killsStat.Value or 0
+            
+            lastUpdateTime = tick()
+        end
+    end
+end)
+
+-- Loop principal para actualizar cada segundo
+spawn(function()
+    while true do
+        calculateRates()
+        wait(1) -- Actualizar cada segundo
+    end
+end)
+
+local calculator = window:AddTab("Calculator")
+
+-- Variables para rastrear valores anteriores y tiempo
+local previousValues = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+local lastUpdateTime = tick()
+local rates = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+-- Crear folders para cada estadística
+local strengthFolder = calculator:AddFolder("Strength Calculator")
+local durabilityFolder = calculator:AddFolder("Durability Calculator")
+local rebirthsFolder = calculator:AddFolder("Rebirths Calculator")
+local killsFolder = calculator:AddFolder("Kills Calculator")
+
+-- Labels para Strength
+local strengthLabels = {
+    perMinute = strengthFolder:AddLabel("Per Minute: 0"),
+    perHour = strengthFolder:AddLabel("Per Hour: 0"),
+    perDay = strengthFolder:AddLabel("Per Day: 0"),
+    perWeek = strengthFolder:AddLabel("Per Week: 0"),
+    perMonth = strengthFolder:AddLabel("Per Month: 0")
+}
+
+-- Labels para Durability
+local durabilityLabels = {
+    perMinute = durabilityFolder:AddLabel("Per Minute: 0"),
+    perHour = durabilityFolder:AddLabel("Per Hour: 0"),
+    perDay = durabilityFolder:AddLabel("Per Day: 0"),
+    perWeek = durabilityFolder:AddLabel("Per Week: 0"),
+    perMonth = durabilityFolder:AddLabel("Per Month: 0")
+}
+
+-- Labels para Rebirths
+local rebirthsLabels = {
+    perMinute = rebirthsFolder:AddLabel("Per Minute: 0"),
+    perHour = rebirthsFolder:AddLabel("Per Hour: 0"),
+    perDay = rebirthsFolder:AddLabel("Per Day: 0"),
+    perWeek = rebirthsFolder:AddLabel("Per Week: 0"),
+    perMonth = rebirthsFolder:AddLabel("Per Month: 0")
+}
+
+-- Labels para Kills
+local killsLabels = {
+    perMinute = killsFolder:AddLabel("Per Minute: 0"),
+    perHour = killsFolder:AddLabel("Per Hour: 0"),
+    perDay = killsFolder:AddLabel("Per Day: 0"),
+    perWeek = killsFolder:AddLabel("Per Week: 0"),
+    perMonth = killsFolder:AddLabel("Per Month: 0")
+}
+
+-- Función para formatear números grandes
+local function formatNumber(num)
+    return tostring(math.floor(num * 100) / 100) -- Redondear a 2 decimales
+end
+
+-- Función para actualizar las labels de una estadística específica
+local function updateLabels(labels, rate, statName)
+    local perMinute = rate
+    local perHour = rate * 60
+    local perDay = rate * 60 * 24
+    local perWeek = rate * 60 * 24 * 7
+    local perMonth = rate * 60 * 24 * 30
+    
+    labels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+    labels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+    labels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+    labels.perWeek.Text = "Per Week: " .. formatNumber(perWeek)
+    labels.perMonth.Text = "Per Month: " .. formatNumber(perMonth)
+end
+
+-- Función principal para calcular rates
+local function calculateRates()
+    local player = game.Players.LocalPlayer
+    if not player then return end
+    
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return end
+    
+    -- Obtener estadísticas actuales
+    local currentTime = tick()
+    local timeDifference = currentTime - lastUpdateTime
+    
+    -- Solo calcular si ha pasado al menos 1 segundo
+    if timeDifference >= 1 then
+        -- Obtener valores actuales
+        local strengthStat = leaderstats:FindFirstChild("Strength")
+        local durabilityStat = player:FindFirstChild("Durability")
+        local rebirthsStat = leaderstats:FindFirstChild("Rebirths")
+        local killsStat = leaderstats:FindFirstChild("Kills")
+        
+        local currentValues = {
+            Strength = strengthStat and strengthStat.Value or 0,
+            Durability = durabilityStat and durabilityStat.Value or 0,
+            Rebirths = rebirthsStat and rebirthsStat.Value or 0,
+            Kills = killsStat and killsStat.Value or 0
+        }
+        
+        -- Calcular rates (por minuto)
+        for statName, currentValue in pairs(currentValues) do
+            local difference = currentValue - previousValues[statName]
+            local ratePerSecond = difference / timeDifference
+            rates[statName] = ratePerSecond * 60 -- Convertir a por minuto
+            previousValues[statName] = currentValue
+        end
+        
+        -- Actualizar labels
+        updateLabels(strengthLabels, rates.Strength, "Strength")
+        updateLabels(durabilityLabels, rates.Durability, "Durability")
+        updateLabels(rebirthsLabels, rates.Rebirths, "Rebirths")
+        updateLabels(killsLabels, rates.Kills, "Kills")
+        
+        lastUpdateTime = currentTime
+    end
+end
+
+-- Inicializar valores previos
+spawn(function()
+    wait(2) -- Esperar a que todo se cargue
+    local player = game.Players.LocalPlayer
+    if player then
+        local leaderstats = player:WaitForChild("leaderstats", 10)
+        if leaderstats then
+            local strengthStat = leaderstats:FindFirstChild("Strength")
+            local durabilityStat = player:FindFirstChild("Durability")
+            local rebirthsStat = leaderstats:FindFirstChild("Rebirths")
+            local killsStat = leaderstats:FindFirstChild("Kills")
+            
+            previousValues.Strength = strengthStat and strengthStat.Value or 0
+            previousValues.Durability = durabilityStat and durabilityStat.Value or 0
+            previousValues.Rebirths = rebirthsStat and rebirthsStat.Value or 0
+            previousValues.Kills = killsStat and killsStat.Value or 0
+            
+            lastUpdateTime = tick()
+        end
+    end
+end)
+
+-- Loop principal para actualizar cada segundo
+spawn(function()
+    while true do
+        calculateRates()
+        wait(1) -- Actualizar cada segundo
+    end
+end)
+
+-- DAMAGE CALCULATOR
+local damageFolder = calculator:AddFolder("Damage Calculator")
+
+-- Pet selections para damage
+local wildWizardToggle = damageFolder:AddToggle("Wild Wizard", false, function(state)
+    calculateDamage()
+end)
+
+local chaosSorcererToggle = damageFolder:AddToggle("Chaos Sorcerer", false, function(state)
+    calculateDamage()
+end)
+
+-- Input para damage base
+local damageInput = damageFolder:AddTextBox("Base Damage (e.g., 1T)", "Enter damage", function(text)
+    calculateDamage()
+end)
+
+-- Labels para mostrar damage con diferentes cantidades de pets
+local damageLabels = {}
+for i = 1, 8 do
+    damageLabels[i] = damageFolder:AddLabel(i .. " Pet(s): 0")
+end
+
+-- Función para convertir texto a número (maneja T, B, M, K)
+local function parseNumber(text)
+    if not text or text == "" then return 0 end
+    text = text:upper():gsub("%s+", "")
+    
+    local number = tonumber(text:match("^[%d%.]+"))
+    if not number then return 0 end
+    
+    if text:find("T") then
+        return number * 1e12
+    elseif text:find("B") then
+        return number * 1e9
+    elseif text:find("M") then
+        return number * 1e6
+    elseif text:find("K") then
+        return number * 1e3
+    else
+        return number
+    end
+end
+
+-- Función para formatear número de vuelta a texto
+local function formatDamageNumber(num)
+    if num >= 1e12 then
+        return string.format("%.2fT", num / 1e12)
+    elseif num >= 1e9 then
+        return string.format("%.2fB", num / 1e9)
+    elseif num >= 1e6 then
+        return string.format("%.2fM", num / 1e6)
+    elseif num >= 1e3 then
+        return string.format("%.2fK", num / 1e3)
+    else
+        return tostring(math.floor(num))
+    end
+end
+
+-- Función para calcular damage
+function calculateDamage()
+    local baseDamage = parseNumber(damageInput.Text)
+    if baseDamage == 0 then
+        for i = 1, 8 do
+            damageLabels[i].Text = i .. " Pet(s): 0"
+        end
+        return
+    end
+    
+    local wildWizardActive = wildWizardToggle.Value
+    local chaosSorcererActive = chaosSorcererToggle.Value
+    
+    for petCount = 1, 8 do
+        local totalMultiplier = 1
+        
+        -- Calcular multiplicador basado en pets activos y cantidad
+        if wildWizardActive and chaosSorcererActive then
+            -- Ambos pets activos: 50% + 25% = 75% por pet
+            totalMultiplier = 1 + (0.75 * petCount)
+        elseif wildWizardActive then
+            -- Solo Wild Wizard: 50% por pet
+            totalMultiplier = 1 + (0.5 * petCount)
+        elseif chaosSorcererActive then
+            -- Solo Chaos Sorcerer: 25% por pet
+            totalMultiplier = 1 + (0.25 * petCount)
+        end
+        
+        local finalDamage = baseDamage * totalMultiplier
+        damageLabels[petCount].Text = petCount .. " Pet(s): " .. formatDamageNumber(finalDamage)
+    end
+end
+
+-- DURABILITY CALCULATOR
+local durabilityFolder = calculator:AddFolder("Durability Calculator")
+
+-- Pet selections para durability
+local mightyMonsterToggle = durabilityFolder:AddToggle("Mighty Monster", false, function(state)
+    calculateDurability()
+end)
+
+local smallFriedToggle = durabilityFolder:AddToggle("Small Fried", false, function(state)
+    calculateDurability()
+end)
+
+-- Input para durability base
+local durabilityInput = durabilityFolder:AddTextBox("Base Durability (e.g., 1T)", "Enter durability", function(text)
+    calculateDurability()
+end)
+
+-- Labels para mostrar durability con diferentes cantidades de pets
+local durabilityLabels = {}
+for i = 1, 8 do
+    durabilityLabels[i] = durabilityFolder:AddLabel(i .. " Pet(s): 0")
+end
+
+-- Función para calcular durability
+function calculateDurability()
+    local baseDurability = parseNumber(durabilityInput.Text)
+    if baseDurability == 0 then
+        for i = 1, 8 do
+            durabilityLabels[i].Text = i .. " Pet(s): 0"
+        end
+        return
+    end
+    
+    local mightyMonsterActive = mightyMonsterToggle.Value
+    local smallFriedActive = smallFriedToggle.Value
+    
+    for petCount = 1, 8 do
+        local totalMultiplier = 1
+        
+        -- Calcular multiplicador basado en pets activos y cantidad
+        if mightyMonsterActive and smallFriedActive then
+            -- Ambos pets activos: 50% + 25% = 75% por pet
+            totalMultiplier = 1 + (0.75 * petCount)
+        elseif mightyMonsterActive then
+            -- Solo Mighty Monster: 50% por pet
+            totalMultiplier = 1 + (0.5 * petCount)
+        elseif smallFriedActive then
+            -- Solo Small Fried: 25% por pet
+            totalMultiplier = 1 + (0.25 * petCount)
+        end
+        
+        local finalDurability = baseDurability * totalMultiplier
+        durabilityLabels[petCount].Text = petCount .. " Pet(s): " .. formatDamageNumber(finalDurability)
+    end
+end
