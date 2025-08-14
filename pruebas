@@ -2183,8 +2183,6 @@ game.Players.LocalPlayer.AncestryChanged:Connect(function()
     end
 end)
 
-local calculator = window:AddTab("Calculator")
-
 -- Variables para rastrear valores anteriores y tiempo
 local previousValues = {
     Strength = 0,
@@ -2338,7 +2336,6 @@ spawn(function()
     end
 end)
 
-local calculator = window:AddTab("Calculator")
 
 -- Variables para rastrear valores anteriores y tiempo
 local previousValues = {
