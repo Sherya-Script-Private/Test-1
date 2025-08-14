@@ -2183,6 +2183,274 @@ game.Players.LocalPlayer.AncestryChanged:Connect(function()
     end
 end)
 
+-- Variables para rastrear valores anteriores y tiempo
+local previousValues = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+local lastUpdateTime = tick()
+local rates = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+local measurementStarted = {
+    Strength = false,
+    Durability = false,
+    Rebirths = false,
+    Kills = false
+}
+
+local measurementDuration = 60 -- 1 minuto en segundos
+
+local measurementStartTime = {
+    Strength = 0,
+    Durability = 0,
+    Rebirths = 0,
+    Kills = 0
+}
+
+-- Crear folders para cada estadística (solo una vez)
+local strengthFolder = calculator:AddFolder("  Strength Calculator")
+local durabilityFolder = calculator:AddFolder("  Durability Calculator")
+local rebirthsFolder = calculator:AddFolder("  Rebirths Calculator")
+local killsFolder = calculator:AddFolder("  Kills Calculator")
+
+-- Función para reiniciar medición de una estadística específica
+local function restartMeasurement(statName)
+    measurementStarted[statName] = false
+    measurementStartTime[statName] = tick()
+    rates[statName] = 0
+    
+    local player = game.Players.LocalPlayer
+    if player then
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if leaderstats then
+            if statName == "Strength" then
+                local stat = leaderstats:FindFirstChild("Strength")
+                previousValues.Strength = stat and stat.Value or 0
+            elseif statName == "Durability" then
+                local stat = player:FindFirstChild("Durability")
+                previousValues.Durability = stat and stat.Value or 0
+            elseif statName == "Rebirths" then
+                local stat = leaderstats:FindFirstChild("Rebirths")
+                previousValues.Rebirths = stat and stat.Value or 0
+            elseif statName == "Kills" then
+                local stat = leaderstats:FindFirstChild("Kills")
+                previousValues.Kills = stat and stat.Value or 0
+            end
+        end
+    end
+end
+
+-- Labels y botones para Strength
+local strengthLabels = {
+    status = strengthFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = strengthFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = strengthFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = strengthFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = strengthFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = strengthFolder:AddLabel("Per Month: Calculando...")
+}
+
+local strengthButton = strengthFolder:AddButton({
+    Text = "Reiniciar Conteo",
+    Callback = function()
+        restartMeasurement("Strength")
+    end
+})
+
+-- Labels y botones para Durability
+local durabilityLabels = {
+    status = durabilityFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = durabilityFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = durabilityFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = durabilityFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = durabilityFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = durabilityFolder:AddLabel("Per Month: Calculando...")
+}
+
+local durabilityButton = durabilityFolder:AddButton({
+    Text = "Reiniciar Conteo",
+    Callback = function()
+        restartMeasurement("Durability")
+    end
+})
+
+-- Labels y botones para Rebirths
+local rebirthsLabels = {
+    status = rebirthsFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = rebirthsFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = rebirthsFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = rebirthsFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = rebirthsFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = rebirthsFolder:AddLabel("Per Month: Calculando...")
+}
+
+local rebirthsButton = rebirthsFolder:AddButton({
+    Text = "Reiniciar Conteo",
+    Callback = function()
+        restartMeasurement("Rebirths")
+    end
+})
+
+-- Labels y botones para Kills
+local killsLabels = {
+    status = killsFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = killsFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = killsFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = killsFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = killsFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = killsFolder:AddLabel("Per Month: Calculando...")
+}
+
+local killsButton = killsFolder:AddButton({
+    Text = "Reiniciar Conteo",
+    Callback = function()
+        restartMeasurement("Kills")
+    end
+})
+
+-- Función para formatear números grandes con abreviaciones
+local function formatNumber(num)
+    if num == math.huge then
+        return "∞"
+    elseif num == 0 then
+        return "0"
+    elseif num < 0.01 and num > 0 then
+        return "~0"
+    end
+    
+    local abs = math.abs(num)
+    local sign = num < 0 and "-" or ""
+    
+    if abs >= 1e30 then
+        return sign .. string.format("%.2f", abs / 1e30) .. "No"  -- Nonillion
+    elseif abs >= 1e27 then
+        return sign .. string.format("%.2f", abs / 1e27) .. "Oc"  -- Octillion
+    elseif abs >= 1e24 then
+        return sign .. string.format("%.2f", abs / 1e24) .. "Sp"  -- Septillion
+    elseif abs >= 1e21 then
+        return sign .. string.format("%.2f", abs / 1e21) .. "Sx"  -- Sextillion
+    elseif abs >= 1e18 then
+        return sign .. string.format("%.2f", abs / 1e18) .. "Qt"  -- Quintillion
+    elseif abs >= 1e15 then
+        return sign .. string.format("%.2f", abs / 1e15) .. "Qd"  -- Quadrillion
+    elseif abs >= 1e12 then
+        return sign .. string.format("%.2f", abs / 1e12) .. "T"   -- Trillion
+    elseif abs >= 1e9 then
+        return sign .. string.format("%.2f", abs / 1e9) .. "B"    -- Billion
+    elseif abs >= 1e6 then
+        return sign .. string.format("%.2f", abs / 1e6) .. "M"    -- Million
+    elseif abs >= 1e3 then
+        return sign .. string.format("%.2f", abs / 1e3) .. "K"    -- Thousand
+    else
+        return sign .. string.format("%.2f", abs)
+    end
+end
+
+-- Función para actualizar las labels de una estadística específica
+local function updateLabels(labels, rate, statName)
+    if not measurementStarted[statName] then
+        if measurementStartTime[statName] == 0 then
+            labels.status.Text = "Status: Presiona reiniciar para iniciar"
+            return
+        end
+        
+        local timeRemaining = measurementDuration - (tick() - measurementStartTime[statName])
+        if timeRemaining > 0 then
+            labels.status.Text = "Status: Midiendo... " .. math.ceil(timeRemaining) .. "s"
+        else
+            labels.status.Text = "Status: Procesando..."
+        end
+        return
+    end
+    
+    labels.status.Text = "Status: Calculado ✓"
+    
+    local perMinute = rate
+    local perHour = rate * 60
+    local perDay = rate * 60 * 24
+    local perWeek = rate * 60 * 24 * 7
+    local perMonth = rate * 60 * 24 * 30
+    
+    labels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+    labels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+    labels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+    labels.perWeek.Text = "Per Week: " .. formatNumber(perWeek)
+    labels.perMonth.Text = "Per Month: " .. formatNumber(perMonth)
+end
+
+-- Función principal para calcular rates
+local function calculateRates()
+    local player = game.Players.LocalPlayer
+    if not player then return end
+    
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return end
+    
+    local currentTime = tick()
+    
+    -- Procesar cada estadística individualmente
+    for statName, _ in pairs(measurementStarted) do
+        -- Si no hemos iniciado la medición para esta estadística, saltarla
+        if measurementStartTime[statName] ~= 0 then
+            -- Verificar si ha pasado 1 minuto para completar la medición
+            if not measurementStarted[statName] and (currentTime - measurementStartTime[statName]) >= measurementDuration then
+                measurementStarted[statName] = true
+                
+                -- Calcular rates finales basados en 1 minuto completo
+                local currentValue = 0
+                
+                if statName == "Strength" then
+                    local stat = leaderstats:FindFirstChild("Strength")
+                    currentValue = stat and stat.Value or 0
+                elseif statName == "Durability" then
+                    local stat = player:FindFirstChild("Durability")
+                    currentValue = stat and stat.Value or 0
+                elseif statName == "Rebirths" then
+                    local stat = leaderstats:FindFirstChild("Rebirths")
+                    currentValue = stat and stat.Value or 0
+                elseif statName == "Kills" then
+                    local stat = leaderstats:FindFirstChild("Kills")
+                    currentValue = stat and stat.Value or 0
+                end
+                
+                local actualTimePassed = currentTime - measurementStartTime[statName]
+                local difference = currentValue - previousValues[statName]
+                
+                -- Normalizar a exactamente 1 minuto
+                rates[statName] = (difference / actualTimePassed) * 60
+            end
+        end
+    end
+    
+    -- Actualizar labels
+    updateLabels(strengthLabels, rates.Strength, "Strength")
+    updateLabels(durabilityLabels, rates.Durability, "Durability")
+    updateLabels(rebirthsLabels, rates.Rebirths, "Rebirths")
+    updateLabels(killsLabels, rates.Kills, "Kills")
+end
+
+-- Inicializar el sistema
+spawn(function()
+    wait(2) -- Esperar a que todo se cargue
+    -- Ya no necesitamos inicializar automáticamente
+    -- El usuario decide cuándo iniciar cada medición con los botones
+end)
+
+-- Loop principal para actualizar cada segundo
+spawn(function()
+    while true do
+        calculateRates()
+        wait(1) -- Actualizar cada segundo
+    end
+end)
 
 -- ============================================================================
 -- KILLER TAB
