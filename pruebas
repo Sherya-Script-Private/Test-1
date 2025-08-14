@@ -2191,6 +2191,7 @@ local previousValues = {
     Kills = 0
 }
 
+local lastUpdateTime = tick()
 local rates = {
     Strength = 0,
     Durability = 0,
@@ -2205,6 +2206,8 @@ local measurementStarted = {
     Kills = false
 }
 
+local measurementDuration = 60 -- 1 minuto en segundos
+
 local measurementStartTime = {
     Strength = 0,
     Durability = 0,
@@ -2212,56 +2215,78 @@ local measurementStartTime = {
     Kills = 0
 }
 
--- Asumiendo que ya tienes creado tu Window de Rayfield
--- local Window = Rayfield:CreateWindow({...})
-
--- Crear tabs para cada estadística
-local CalculatorTab = Window:CreateTab("📊 Calculator", 4483362458)
-
--- Crear sections para cada estadística
-local StrengthSection = CalculatorTab:CreateSection("💪 Strength Calculator")
-local DurabilitySection = CalculatorTab:CreateSection("🛡️ Durability Calculator") 
-local RebirthsSection = CalculatorTab:CreateSection("🔄 Rebirths Calculator")
-local KillsSection = CalculatorTab:CreateSection("⚔️ Kills Calculator")
-
--- Variables para almacenar los labels
-local strengthLabels = {}
-local durabilityLabels = {}
-local rebirthsLabels = {}
-local killsLabels = {}
-
--- Función para obtener el valor actual de una estadística
-local function getCurrentValue(statName)
-    local player = game.Players.LocalPlayer
-    if not player then return 0 end
-    
-    local leaderstats = player:FindFirstChild("leaderstats")
-    if not leaderstats then return 0 end
-    
-    if statName == "Strength" then
-        local stat = leaderstats:FindFirstChild("Strength")
-        return stat and stat.Value or 0
-    elseif statName == "Durability" then
-        local stat = player:FindFirstChild("Durability")
-        return stat and stat.Value or 0
-    elseif statName == "Rebirths" then
-        local stat = leaderstats:FindFirstChild("Rebirths")
-        return stat and stat.Value or 0
-    elseif statName == "Kills" then
-        local stat = leaderstats:FindFirstChild("Kills")
-        return stat and stat.Value or 0
-    end
-    return 0
-end
+-- Crear folders para cada estadística (solo una vez)
+local strengthFolder = calculator:AddFolder("  Strength Calculator")
+local durabilityFolder = calculator:AddFolder("  Durability Calculator")
+local rebirthsFolder = calculator:AddFolder("  Rebirths Calculator")
+local killsFolder = calculator:AddFolder("  Kills Calculator")
 
 -- Función para reiniciar medición de una estadística específica
 local function restartMeasurement(statName)
     measurementStarted[statName] = false
     measurementStartTime[statName] = tick()
     rates[statName] = 0
-    previousValues[statName] = getCurrentValue(statName)
-    print("🔄 Reiniciando medición para " .. statName)
+    
+    local player = game.Players.LocalPlayer
+    if player then
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if leaderstats then
+            if statName == "Strength" then
+                local stat = leaderstats:FindFirstChild("Strength")
+                previousValues.Strength = stat and stat.Value or 0
+            elseif statName == "Durability" then
+                local stat = player:FindFirstChild("Durability")
+                previousValues.Durability = stat and stat.Value or 0
+            elseif statName == "Rebirths" then
+                local stat = leaderstats:FindFirstChild("Rebirths")
+                previousValues.Rebirths = stat and stat.Value or 0
+            elseif statName == "Kills" then
+                local stat = leaderstats:FindFirstChild("Kills")
+                previousValues.Kills = stat and stat.Value or 0
+            end
+        end
+    end
 end
+
+-- Labels y botones para Strength
+local strengthLabels = {
+    status = strengthFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = strengthFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = strengthFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = strengthFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = strengthFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = strengthFolder:AddLabel("Per Month: Calculando...")
+}
+
+-- Labels para Durability
+local durabilityLabels = {
+    status = durabilityFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = durabilityFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = durabilityFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = durabilityFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = durabilityFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = durabilityFolder:AddLabel("Per Month: Calculando...")
+}
+
+-- Labels para Rebirths
+local rebirthsLabels = {
+    status = rebirthsFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = rebirthsFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = rebirthsFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = rebirthsFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = rebirthsFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = rebirthsFolder:AddLabel("Per Month: Calculando...")
+}
+
+-- Labels para Kills
+local killsLabels = {
+    status = killsFolder:AddLabel("Status: Iniciando medición..."),
+    perMinute = killsFolder:AddLabel("Per Minute: Calculando..."),
+    perHour = killsFolder:AddLabel("Per Hour: Calculando..."),
+    perDay = killsFolder:AddLabel("Per Day: Calculando..."),
+    perWeek = killsFolder:AddLabel("Per Week: Calculando..."),
+    perMonth = killsFolder:AddLabel("Per Month: Calculando...")
+}
 
 -- Función para formatear números grandes con abreviaciones
 local function formatNumber(num)
@@ -2277,185 +2302,127 @@ local function formatNumber(num)
     local sign = num < 0 and "-" or ""
     
     if abs >= 1e30 then
-        return sign .. string.format("%.2f", abs / 1e30) .. "No"
+        return sign .. string.format("%.2f", abs / 1e30) .. "No"  -- Nonillion
     elseif abs >= 1e27 then
-        return sign .. string.format("%.2f", abs / 1e27) .. "Oc"
+        return sign .. string.format("%.2f", abs / 1e27) .. "Oc"  -- Octillion
     elseif abs >= 1e24 then
-        return sign .. string.format("%.2f", abs / 1e24) .. "Sp"
+        return sign .. string.format("%.2f", abs / 1e24) .. "Sp"  -- Septillion
     elseif abs >= 1e21 then
-        return sign .. string.format("%.2f", abs / 1e21) .. "Sx"
+        return sign .. string.format("%.2f", abs / 1e21) .. "Sx"  -- Sextillion
     elseif abs >= 1e18 then
-        return sign .. string.format("%.2f", abs / 1e18) .. "Qt"
+        return sign .. string.format("%.2f", abs / 1e18) .. "Qt"  -- Quintillion
     elseif abs >= 1e15 then
-        return sign .. string.format("%.2f", abs / 1e15) .. "Qd"
+        return sign .. string.format("%.2f", abs / 1e15) .. "Qd"  -- Quadrillion
     elseif abs >= 1e12 then
-        return sign .. string.format("%.2f", abs / 1e12) .. "T"
+        return sign .. string.format("%.2f", abs / 1e12) .. "T"   -- Trillion
     elseif abs >= 1e9 then
-        return sign .. string.format("%.2f", abs / 1e9) .. "B"
+        return sign .. string.format("%.2f", abs / 1e9) .. "B"    -- Billion
     elseif abs >= 1e6 then
-        return sign .. string.format("%.2f", abs / 1e6) .. "M"
+        return sign .. string.format("%.2f", abs / 1e6) .. "M"    -- Million
     elseif abs >= 1e3 then
-        return sign .. string.format("%.2f", abs / 1e3) .. "K"
+        return sign .. string.format("%.2f", abs / 1e3) .. "K"    -- Thousand
     else
         return sign .. string.format("%.2f", abs)
     end
 end
 
--- Función para actualizar las labels
+-- Función para actualizar las labels de una estadística específica
 local function updateLabels(labels, rate, statName)
-    if not labels.status then return end
-    
-    local currentTime = tick()
-    local startTime = measurementStartTime[statName]
-    
-    if startTime == 0 then
-        labels.status:Set("Status: Presiona 'Iniciar Medición'")
-        if labels.perMinute then labels.perMinute:Set("Per Minute: -") end
-        if labels.perHour then labels.perHour:Set("Per Hour: -") end
-        if labels.perDay then labels.perDay:Set("Per Day: -") end
-        if labels.perWeek then labels.perWeek:Set("Per Week: -") end
-        if labels.perMonth then labels.perMonth:Set("Per Month: -") end
+    if not measurementStarted[statName] then
+        if measurementStartTime[statName] == 0 then
+            labels.status.Text = "Status: Presiona reiniciar para iniciar"
+            return
+        end
+        
+        local timeRemaining = measurementDuration - (tick() - measurementStartTime[statName])
+        if timeRemaining > 0 then
+            labels.status.Text = "Status: Midiendo... " .. math.ceil(timeRemaining) .. "s"
+        else
+            labels.status.Text = "Status: Procesando..."
+        end
         return
     end
     
-    local timeElapsed = currentTime - startTime
+    labels.status.Text = "Status: Calculado ✓"
     
-    if timeElapsed < 60 then
-        local timeRemaining = 60 - timeElapsed
-        labels.status:Set("Status: Midiendo... " .. math.ceil(timeRemaining) .. "s restantes")
-        if labels.perMinute then labels.perMinute:Set("Per Minute: Calculando...") end
-        if labels.perHour then labels.perHour:Set("Per Hour: Calculando...") end
-        if labels.perDay then labels.perDay:Set("Per Day: Calculando...") end
-        if labels.perWeek then labels.perWeek:Set("Per Week: Calculando...") end
-        if labels.perMonth then labels.perMonth:Set("Per Month: Calculando...") end
-    else
-        labels.status:Set("Status: ✅ Calculado (basado en " .. math.floor(timeElapsed) .. "s)")
-        
-        local perMinute = rate
-        local perHour = rate * 60
-        local perDay = rate * 60 * 24
-        local perWeek = rate * 60 * 24 * 7
-        local perMonth = rate * 60 * 24 * 30
-        
-        if labels.perMinute then labels.perMinute:Set("Per Minute: " .. formatNumber(perMinute)) end
-        if labels.perHour then labels.perHour:Set("Per Hour: " .. formatNumber(perHour)) end
-        if labels.perDay then labels.perDay:Set("Per Day: " .. formatNumber(perDay)) end
-        if labels.perWeek then labels.perWeek:Set("Per Week: " .. formatNumber(perWeek)) end
-        if labels.perMonth then labels.perMonth:Set("Per Month: " .. formatNumber(perMonth)) end
-    end
+    local perMinute = rate
+    local perHour = rate * 60
+    local perDay = rate * 60 * 24
+    local perWeek = rate * 60 * 24 * 7
+    local perMonth = rate * 60 * 24 * 30
+    
+    labels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+    labels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+    labels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+    labels.perWeek.Text = "Per Week: " .. formatNumber(perWeek)
+    labels.perMonth.Text = "Per Month: " .. formatNumber(perMonth)
 end
-
--- Crear UI para Strength
-strengthLabels.status = CalculatorTab:CreateLabel("Status: Presiona 'Iniciar Medición'")
-strengthLabels.perMinute = CalculatorTab:CreateLabel("Per Minute: -")
-strengthLabels.perHour = CalculatorTab:CreateLabel("Per Hour: -")
-strengthLabels.perDay = CalculatorTab:CreateLabel("Per Day: -")
-strengthLabels.perWeek = CalculatorTab:CreateLabel("Per Week: -")
-strengthLabels.perMonth = CalculatorTab:CreateLabel("Per Month: -")
-
-local StrengthButton = CalculatorTab:CreateButton({
-    Name = "🔄 Iniciar/Reiniciar Strength",
-    Callback = function()
-        restartMeasurement("Strength")
-    end,
-})
-
--- Crear UI para Durability
-durabilityLabels.status = CalculatorTab:CreateLabel("Status: Presiona 'Iniciar Medición'")
-durabilityLabels.perMinute = CalculatorTab:CreateLabel("Per Minute: -")
-durabilityLabels.perHour = CalculatorTab:CreateLabel("Per Hour: -")
-durabilityLabels.perDay = CalculatorTab:CreateLabel("Per Day: -")
-durabilityLabels.perWeek = CalculatorTab:CreateLabel("Per Week: -")
-durabilityLabels.perMonth = CalculatorTab:CreateLabel("Per Month: -")
-
-local DurabilityButton = CalculatorTab:CreateButton({
-    Name = "🔄 Iniciar/Reiniciar Durability",
-    Callback = function()
-        restartMeasurement("Durability")
-    end,
-})
-
--- Crear UI para Rebirths
-rebirthsLabels.status = CalculatorTab:CreateLabel("Status: Presiona 'Iniciar Medición'")
-rebirthsLabels.perMinute = CalculatorTab:CreateLabel("Per Minute: -")
-rebirthsLabels.perHour = CalculatorTab:CreateLabel("Per Hour: -")
-rebirthsLabels.perDay = CalculatorTab:CreateLabel("Per Day: -")
-rebirthsLabels.perWeek = CalculatorTab:CreateLabel("Per Week: -")
-rebirthsLabels.perMonth = CalculatorTab:CreateLabel("Per Month: -")
-
-local RebirthsButton = CalculatorTab:CreateButton({
-    Name = "🔄 Iniciar/Reiniciar Rebirths",
-    Callback = function()
-        restartMeasurement("Rebirths")
-    end,
-})
-
--- Crear UI para Kills
-killsLabels.status = CalculatorTab:CreateLabel("Status: Presiona 'Iniciar Medición'")
-killsLabels.perMinute = CalculatorTab:CreateLabel("Per Minute: -")
-killsLabels.perHour = CalculatorTab:CreateLabel("Per Hour: -")
-killsLabels.perDay = CalculatorTab:CreateLabel("Per Day: -")
-killsLabels.perWeek = CalculatorTab:CreateLabel("Per Week: -")
-killsLabels.perMonth = CalculatorTab:CreateLabel("Per Month: -")
-
-local KillsButton = CalculatorTab:CreateButton({
-    Name = "🔄 Iniciar/Reiniciar Kills",
-    Callback = function()
-        restartMeasurement("Kills")
-    end,
-})
-
--- Botón global para reiniciar todo
-local GlobalSection = CalculatorTab:CreateSection("🌟 Control Global")
-
-local GlobalButton = CalculatorTab:CreateButton({
-    Name = "🔄 Reiniciar Todas las Mediciones",
-    Callback = function()
-        for statName, _ in pairs(measurementStarted) do
-            restartMeasurement(statName)
-        end
-    end,
-})
 
 -- Función principal para calcular rates
 local function calculateRates()
+    local player = game.Players.LocalPlayer
+    if not player then return end
+    
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if not leaderstats then return end
+    
     local currentTime = tick()
     
+    -- Procesar cada estadística individualmente
     for statName, _ in pairs(measurementStarted) do
-        local startTime = measurementStartTime[statName]
-        
-        if startTime ~= 0 then
-            local timeElapsed = currentTime - startTime
-            
-            if timeElapsed >= 60 then
-                local currentValue = getCurrentValue(statName)
-                local previousValue = previousValues[statName]
-                local difference = currentValue - previousValue
-                
-                rates[statName] = (difference / timeElapsed) * 60
+        -- Si no hemos iniciado la medición para esta estadística, saltarla
+        if measurementStartTime[statName] ~= 0 then
+            -- Verificar si ha pasado 1 minuto para completar la medición
+            if not measurementStarted[statName] and (currentTime - measurementStartTime[statName]) >= measurementDuration then
                 measurementStarted[statName] = true
+                
+                -- Calcular rates finales basados en 1 minuto completo
+                local currentValue = 0
+                
+                if statName == "Strength" then
+                    local stat = leaderstats:FindFirstChild("Strength")
+                    currentValue = stat and stat.Value or 0
+                elseif statName == "Durability" then
+                    local stat = player:FindFirstChild("Durability")
+                    currentValue = stat and stat.Value or 0
+                elseif statName == "Rebirths" then
+                    local stat = leaderstats:FindFirstChild("Rebirths")
+                    currentValue = stat and stat.Value or 0
+                elseif statName == "Kills" then
+                    local stat = leaderstats:FindFirstChild("Kills")
+                    currentValue = stat and stat.Value or 0
+                end
+                
+                local actualTimePassed = currentTime - measurementStartTime[statName]
+                local difference = currentValue - previousValues[statName]
+                
+                -- Normalizar a exactamente 1 minuto
+                rates[statName] = (difference / actualTimePassed) * 60
             end
         end
     end
     
-    -- Actualizar todas las labels
+    -- Actualizar labels
     updateLabels(strengthLabels, rates.Strength, "Strength")
     updateLabels(durabilityLabels, rates.Durability, "Durability")
     updateLabels(rebirthsLabels, rates.Rebirths, "Rebirths")
     updateLabels(killsLabels, rates.Kills, "Kills")
 end
 
--- Loop principal
+-- Inicializar el sistema
+spawn(function()
+    wait(2) -- Esperar a que todo se cargue
+    -- Ya no necesitamos inicializar automáticamente
+    -- El usuario decide cuándo iniciar cada medición con los botones
+end)
+
+-- Loop principal para actualizar cada segundo
 spawn(function()
     while true do
         calculateRates()
-        wait(1)
+        wait(1) -- Actualizar cada segundo
     end
 end)
-
-print("📊 Calculator cargado correctamente!")
-print("💡 Presiona los botones para comenzar a medir cada estadística")
-print("⏱️ El cálculo se mostrará después de 1 minuto de medición")
 
 -- ============================================================================
 -- KILLER TAB
