@@ -34,36 +34,11 @@ local function safeCall(func, ...)
 end
 
 -- UI Window
--- Create Main Window
-local window = library:AddWindow("Sherya Script | Galaxy Hub", {
-    main_color = Color3.fromRGB(144, 0, 194),
+local window = library:AddWindow("Sherya Script", {
+    main_color = Color3.fromRGB(75, 0, 130),
     min_size = Vector2.new(660, 660),
     can_resize = true,
 })
-
--- Anti-AFK System
-local VirtualUser = game:GetService("VirtualUser")
-local antiAFKConnection
-
-local function setupAntiAFK()
-    -- Disconnect previous connection if it exists
-    if antiAFKConnection then
-        antiAFKConnection:Disconnect()
-    end
-    
-    -- Connect to PlayerIdleEvent to prevent AFK kicks
-    antiAFKConnection = player.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-        print("Anti-AFK: Prevented idle kick")
-    end)
-    
-    print("Anti-AFK system enabled")
-end
-
--- Initialize Anti-AFK system
-setupAntiAFK()
-
 
 local mainTab = window:AddTab("Main")
 local farmTab = window:AddTab("Farm")
@@ -78,6 +53,21 @@ local Teleport = window:AddTab("Teleport")
 local creditsTab = window:AddTab("Credits")
 
 local BrawlFolder = mainTab:AddFolder("  Auto Brawls")
+
+local godModeToggle = false
+BrawlFolder:AddSwitch("God Mode (Brawl)", function(State)
+    godModeToggle = State
+    if State then
+        task.spawn(function()
+            while godModeToggle do
+                game:GetService("ReplicatedStorage").rEvents.brawlEvent:FireServer("joinBrawl")
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+local whitelist = {} 
 
 -- Variables
 local whitelist = {} -- Add any whitelisted player IDs here
