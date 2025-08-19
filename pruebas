@@ -34,9 +34,9 @@ local function safeCall(func, ...)
 end
 
 -- UI Window
-local window = library:AddWindow("Sherya Script", {
+local window = library:AddWindow("Sherya Script | Galaxy Hub", {
     main_color = Color3.fromRGB(75, 0, 130),
-    min_size = Vector2.new(660, 660),
+    min_size = Vector2.new(600, 660),
     can_resize = true,
 })
 
@@ -46,12 +46,17 @@ local miscTab = window:AddTab("Misc")
 local pets = window:AddTab("Pets")
 local Stats = window:AddTab("Stats")
 local Calculator = window:AddTab("Calculator")
-local DamageTab = window:AddTab("Damage")
 local Killing = window:AddTab("Killer")
-local killingv2 = window:AddTab("Killer V2")
+local DamageTab = window:AddTab("Damage")
+local killingv2 = window:AddTab("Killer v2")
 local Teleport = window:AddTab("Teleport")
 local creditsTab = window:AddTab("Credits")
 
+-- ============================================================================
+-- MAIN TAB
+-- ============================================================================
+
+-- Auto Brawls Folder
 local BrawlFolder = mainTab:AddFolder("  Auto Brawls")
 
 local godModeToggle = false
@@ -69,27 +74,16 @@ end)
 
 local whitelist = {} 
 
--- Variables
-local whitelist = {} -- Add any whitelisted player IDs here
-
--- Auto Win Brawl Toggle
-local autoWinBrawlSwitch = BrawlFolder:AddSwitch("Auto Win Brawls", function(bool)
+local autoWinBrawlToggle = BrawlFolder:AddSwitch("Auto Win Brawls", function(bool)
     getgenv().autoWinBrawl = bool
-    
-    -- Equip Punch Tool function - will be called repeatedly
+
     local function equipPunch()
         if not getgenv().autoWinBrawl then return end
-        
         local character = game.Players.LocalPlayer.Character
         if not character then return false end
-        
-        -- Check if already equipped
         if character:FindFirstChild("Punch") then return true end
-        
-        -- Try to equip from backpack
         local backpack = game.Players.LocalPlayer.Backpack
         if not backpack then return false end
-        
         for _, tool in pairs(backpack:GetChildren()) do
             if tool.ClassName == "Tool" and tool.Name == "Punch" then
                 tool.Parent = character
@@ -98,187 +92,119 @@ local autoWinBrawlSwitch = BrawlFolder:AddSwitch("Auto Win Brawls", function(boo
         end
         return false
     end
-    
-    -- Safe player check function
+
     local function isValidTarget(player)
         if not player or not player.Parent then return false end
         if player == Players.LocalPlayer then return false end
-        if whitelist[player.UserId] then return false end
-        
+        if _G.whitelistedPlayers and table.find(_G.whitelistedPlayers, player.Name) then return false end
         local character = player.Character
         if not character or not character.Parent then return false end
-        
         local humanoid = character:FindFirstChild("Humanoid")
         if not humanoid then return false end
-        
-        -- Multiple health checks to be absolutely certain
         if not humanoid.Health or humanoid.Health <= 0 then return false end
         if humanoid:GetState() == Enum.HumanoidStateType.Dead then return false end
-        
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if not rootPart or not rootPart.Parent then return false end
-        
         return true
     end
-    
-    -- Safe local player check function
+
     local function isLocalPlayerReady()
         local player = game.Players.LocalPlayer
         if not player then return false end
-        
         local character = player.Character
         if not character or not character.Parent then return false end
-        
         local humanoid = character:FindFirstChild("Humanoid")
         if not humanoid or humanoid.Health <= 0 then return false end
-        
         local leftHand = character:FindFirstChild("LeftHand")
         local rightHand = character:FindFirstChild("RightHand")
-        
         return (leftHand ~= nil or rightHand ~= nil)
     end
-    
-    -- Safe firetouchinterest function
+
     local function safeTouchInterest(targetPart, localPart)
         if not targetPart or not targetPart.Parent then return false end
         if not localPart or not localPart.Parent then return false end
-        
-        local success, err = pcall(function()
+        local success = pcall(function()
             firetouchinterest(targetPart, localPart, 0)
             task.wait(0.01)
             firetouchinterest(targetPart, localPart, 1)
         end)
-        
         return success
     end
-    
-    -- Join Brawl Loop
-    task.spawn(function()
-        while getgenv().autoWinBrawl and task.wait(0.5) do
-            if not getgenv().autoWinBrawl then break end
-            
-            if game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible then
-                game.ReplicatedStorage.rEvents.brawlEvent:FireServer("joinBrawl")
-                game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible = false
+
+    if bool then
+        task.spawn(function()
+            while getgenv().autoWinBrawl and task.wait(0.5) do
+                if not getgenv().autoWinBrawl then break end
+                pcall(function()
+                    if game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible then
+                        game.ReplicatedStorage.rEvents.brawlEvent:FireServer("joinBrawl")
+                        game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible = false
+                    end
+                end)
             end
-        end
-    end)
-    
-    -- Equipment loop - keeps trying to equip the punch
-    task.spawn(function()
-        while getgenv().autoWinBrawl and task.wait(0.5) do
-            if not getgenv().autoWinBrawl then break end
-            equipPunch()
-        end
-    end)
-    
-    -- Auto Punch Loop - keeps punching
-    task.spawn(function()
-        while getgenv().autoWinBrawl and task.wait(0.1) do
-            if not getgenv().autoWinBrawl then break end
-            
-            if isLocalPlayerReady() and game.ReplicatedStorage.brawlInProgress.Value then
-                local player = game.Players.LocalPlayer
-                pcall(function() player.muscleEvent:FireServer("punch", "rightHand") end)
-                pcall(function() player.muscleEvent:FireServer("punch", "leftHand") end)
+        end)
+
+        task.spawn(function()
+            while getgenv().autoWinBrawl and task.wait(0.5) do
+                if not getgenv().autoWinBrawl then break end
+                equipPunch()
             end
-        end
-    end)
-    
-    -- Main Kill Loop - extremely resilient
-    task.spawn(function()
-        while getgenv().autoWinBrawl and task.wait(0.05) do
-            if not getgenv().autoWinBrawl then break end
-            
-            -- Only proceed if local player is ready and brawl is in progress
-            if isLocalPlayerReady() and game.ReplicatedStorage.brawlInProgress.Value then
-                local character = game.Players.LocalPlayer.Character
-                local leftHand = character:FindFirstChild("LeftHand")
-                local rightHand = character:FindFirstChild("RightHand")
-                
-                -- Process each player individually with error handling
-                for _, player in pairs(Players:GetPlayers()) do
-                    -- Skip if toggle was turned off mid-loop
-                    if not getgenv().autoWinBrawl then break end
-                    
-                    -- Use pcall for the entire player processing to prevent any errors from breaking the loop
-                    pcall(function()
-                        if isValidTarget(player) then
-                            local targetRoot = player.Character.HumanoidRootPart
-                            
-                            -- Try left hand
-                            if leftHand then
-                                safeTouchInterest(targetRoot, leftHand)
-                            end
-                            
-                            -- Try right hand
-                            if rightHand then
-                                safeTouchInterest(targetRoot, rightHand)
-                            end
-                        end
-                    end)
-                    
-                    -- Small delay between players to prevent overwhelming
-                    task.wait(0.01)
+        end)
+
+        task.spawn(function()
+            while getgenv().autoWinBrawl and task.wait(0.1) do
+                if not getgenv().autoWinBrawl then break end
+                if isLocalPlayerReady() and game.ReplicatedStorage.brawlInProgress.Value then
+                    local player = game.Players.LocalPlayer
+                    pcall(function() player.muscleEvent:FireServer("punch", "rightHand") end)
+                    pcall(function() player.muscleEvent:FireServer("punch", "leftHand") end)
                 end
             end
-        end
-    end)
-    
-    -- Recovery system - if the main loop somehow breaks, this will restart it
-    task.spawn(function()
-        local lastPlayerCount = 0
-        local stuckCounter = 0
-        
-        while getgenv().autoWinBrawl and task.wait(1) do
-            if not getgenv().autoWinBrawl then break end
-            
-            -- Check if we're processing players
-            local currentPlayerCount = #Players:GetPlayers()
-            
-            -- If player count changed but we're not seeing any activity, restart the kill loop
-            if currentPlayerCount ~= lastPlayerCount then
-                stuckCounter = 0
-                lastPlayerCount = currentPlayerCount
-            else
-                stuckCounter = stuckCounter + 1
-                
-                -- If we seem stuck for too long, force re-equip the tool
-                if stuckCounter > 5 then
-                    stuckCounter = 0
-                    
-                    -- Force re-equip
-                    pcall(function()
-                        local character = game.Players.LocalPlayer.Character
-                        if character and character:FindFirstChild("Punch") then
-                            character.Punch.Parent = game.Players.LocalPlayer.Backpack
-                            task.wait(0.1)
-                            equipPunch()
-                        else
-                            equipPunch()
-                        end
-                    end)
+        end)
+
+        task.spawn(function()
+            while getgenv().autoWinBrawl and task.wait(0.05) do
+                if not getgenv().autoWinBrawl then break end
+                if isLocalPlayerReady() and game.ReplicatedStorage.brawlInProgress.Value then
+                    local character = game.Players.LocalPlayer.Character
+                    local leftHand = character:FindFirstChild("LeftHand")
+                    local rightHand = character:FindFirstChild("RightHand")
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if not getgenv().autoWinBrawl then break end
+                        pcall(function()
+                            if isValidTarget(player) then
+                                local targetRoot = player.Character.HumanoidRootPart
+                                if leftHand then
+                                    safeTouchInterest(targetRoot, leftHand)
+                                end
+                                if rightHand then
+                                    safeTouchInterest(targetRoot, rightHand)
+                                end
+                            end
+                        end)
+                        task.wait(0.01)
+                    end
                 end
             end
-        end
-    end)
+        end)
+    end
 end)
 
--- Auto Join Brawl Only - FIXED to join only once and properly turn off
-BrawlFolder:AddSwitch("Auto Brawls", function(bool)
+BrawlFolder:AddSwitch("Auto Join Brawls", function(bool)
     getgenv().autoJoinBrawl = bool
-    
-    task.spawn(function()
-        while getgenv().autoJoinBrawl and task.wait(0.5) do
-            if not getgenv().autoJoinBrawl then break end
-            
-            if game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible then
-                game.ReplicatedStorage.rEvents.brawlEvent:FireServer("joinBrawl")
-                -- Set the label to not visible to prevent multiple joins
-                game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible = false
+    if bool then
+        task.spawn(function()
+            while getgenv().autoJoinBrawl and task.wait(0.5) do
+                if not getgenv().autoJoinBrawl then break end
+                pcall(function()
+                    if game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible then
+                        game.ReplicatedStorage.rEvents.brawlEvent:FireServer("joinBrawl")
+                        game.Players.LocalPlayer.PlayerGui.gameGui.brawlJoinLabel.Visible = false
+                    end
+                end)
             end
-        end
-    end)
+        end)
+    end
 end)
 
 local jungleGymFolder = mainTab:AddFolder("  Jungle Gym")
@@ -1815,147 +1741,11 @@ PackFarmFolder:AddButton("Equip Tribal Overlord (8x)", function()
     equipSpecificPets("Tribal Overlord", 8)
 end)
 
-local statsFolder = PackFarmFolder:AddFolder("Rebirth Statistics")
-local runTimeLabel = statsFolder:AddLabel("RunTime: 00:00:00")
-local currentRebirthsLabel = statsFolder:AddLabel("Current Rebirths: 0")
-local rebirthGainsLabel = statsFolder:AddLabel("Rebirth Gains: 0")
-local targetRebirthLabel = statsFolder:AddLabel("Target Rebirth: None")
-local rebirthsNeededLabel = statsFolder:AddLabel("Rebirths Needed: N/A")
-local timeToTargetLabel = statsFolder:AddLabel("Time To Target: N/A")
-local estimatedCompletionLabel = statsFolder:AddLabel("Estimated Completion: N/A")
-local perMinuteLabel = statsFolder:AddLabel("Per Minute: 0")
-local perHourLabel = statsFolder:AddLabel("Per Hour: 0")
-local hours12Label = statsFolder:AddLabel("12 Hours: 0")
-local hours24Label = statsFolder:AddLabel("24 Hours: 0")
+-- ============================================================================
+-- MISC TAB
+-- ============================================================================
 
-local settingsFolder = PackFarmFolder:AddFolder("Settings")
-settingsFolder:AddButton("Reset RunTime", function()
-    startTime = os.time()
-    rebirthStartTime = os.time()
-    if player.leaderstats and player.leaderstats.Rebirths then
-        startRebirths = player.leaderstats.Rebirths.Value
-        hasStarted = true
-    else
-        startRebirths = 0
-        hasStarted = false
-    end
-end)
-
-task.spawn(function()
-    startTime = os.time()
-    rebirthStartTime = os.time()
-
-    if player.leaderstats and player.leaderstats.Rebirths then
-        startRebirths = player.leaderstats.Rebirths.Value
-    end
-
-    while true do
-        if player.leaderstats and player.leaderstats.Rebirths then
-            local currentRebirths = player.leaderstats.Rebirths.Value
-            local elapsedTime = os.time() - startTime
-            local rebirthElapsedTime = os.time() - rebirthStartTime
-
-            currentRebirthsLabel.Text = string.format("Current Rebirths: %s", 
-                formatNumberWithCommas(currentRebirths))
-
-            if targetRebirth ~= math.huge then
-                targetRebirthLabel.Text = string.format("Target Rebirth: %s", 
-                    formatNumberWithCommas(targetRebirth))
-            else
-                targetRebirthLabel.Text = "Target Rebirth: None"
-            end
-
-            if hasStarted then
-                local gainedRebirths = currentRebirths - startRebirths
-
-                rebirthGainsLabel.Text = string.format("Rebirth Gains: %s", 
-                    formatNumberWithCommas(gainedRebirths))
-
-                    if rebirthElapsedTime > 0 then
-                        local perMinute = gainedRebirths / (rebirthElapsedTime / 60)
-                        local perHour = perMinute * 60
-
-                        perMinuteLabel.Text = string.format("Per Minute: %s", 
-                            formatNumberWithCommas(perMinute))
-                        perHourLabel.Text = string.format("Per Hour: %s", 
-                            formatNumberWithCommas(perHour))
-                        hours12Label.Text = string.format("12 Hours: %s", 
-                            formatNumberWithCommas(perHour * 12))
-                        hours24Label.Text = string.format("24 Hours: %s", 
-                            formatNumberWithCommas(perHour * 24))
-
-                        if targetRebirth ~= math.huge then
-                            local rebirthsNeeded = targetRebirth - currentRebirths
-                            rebirthsNeededLabel.Text = string.format("Rebirths Needed: %s",
-                                formatNumberWithCommas(rebirthsNeeded))
-
-                            if perHour > 0 and rebirthsNeeded > 0 then
-                                local hoursToTarget = rebirthsNeeded / perHour
-                                local timeToTarget = formatTime(hoursToTarget * 3600)
-                                timeToTargetLabel.Text = string.format("Time To Target: %s", timeToTarget)
-
-                                local completionTimestamp = os.time() + (hoursToTarget * 3600)
-                                local completionDate = os.date("%m/%d/%Y %H:%M", completionTimestamp)
-                                estimatedCompletionLabel.Text = string.format("Estimated Completion: %s", completionDate)
-                            elseif rebirthsNeeded <= 0 then
-                                timeToTargetLabel.Text = "Time To Target: Reached!"
-                                estimatedCompletionLabel.Text = "Estimated Completion: Completed!"
-                            else
-                                timeToTargetLabel.Text = "Time To Target: N/A"
-                                estimatedCompletionLabel.Text = "Estimated Completion: N/A"
-                            end
-                        else
-                            rebirthsNeededLabel.Text = "Rebirths Needed: N/A"
-                            timeToTargetLabel.Text = "Time To Target: N/A"
-                            estimatedCompletionLabel.Text = "Estimated Completion: N/A"
-                        end
-                    end
-
-                    local timeString = formatTime(elapsedTime)
-                    runTimeLabel.Text = string.format("RunTime: %s", timeString)
-                else
-                    rebirthGainsLabel.Text = "Rebirth Gains: 0"
-                    perMinuteLabel.Text = "Per Minute: 0"
-                    perHourLabel.Text = "Per Hour: 0"
-                    hours12Label.Text = "12 Hours: 0"
-                    hours24Label.Text = "24 Hours: 0"
-
-                    runTimeLabel.Text = "RunTime: 00:00:00"
-
-                    rebirthsNeededLabel.Text = "Rebirths Needed: N/A"
-                    timeToTargetLabel.Text = "Time To Target: N/A"
-                    estimatedCompletionLabel.Text = "Estimated Completion: N/A"
-                end
-            else
-                currentRebirthsLabel.Text = "Current Rebirths: Waiting..."
-            end
-
-            task.wait(1)
-        end
-    end)
-
-    local function checkForRebirthStart()
-        if not player.leaderstats or not player.leaderstats:FindFirstChild("Rebirths") then
-            repeat
-                task.wait(0.5)
-            until player.leaderstats and player.leaderstats:FindFirstChild("Rebirths")
-        end
-
-        local initialRebirths = player.leaderstats.Rebirths.Value
-
-        player.leaderstats.Rebirths:GetPropertyChangedSignal("Value"):Connect(function()
-            local newRebirths = player.leaderstats.Rebirths.Value
-            if not hasStarted and newRebirths > initialRebirths then
-                startTime = os.time()
-                rebirthStartTime = os.time()
-                startRebirths = initialRebirths
-                hasStarted = true
-            end
-        end)
-    end
-
-    task.spawn(checkForRebirthStart)
-
+-- Misc 1 Folder
 local misc1Folder = miscTab:AddFolder("  Misc 1")
 
 local sizeValue = 2
@@ -2171,83 +1961,6 @@ misc5Folder:AddButton("Remove Portals", function()
     })
 end)
 
--- Walk on Water feature
-local parts = {}
-local partSize = 2048
-local totalDistance = 50000
-local startPosition = Vector3.new(-2, -9.5, -2)
-local numberOfParts = math.ceil(totalDistance / partSize)
-
-local function createParts()
-    for x = 0, numberOfParts - 1 do
-        for z = 0, numberOfParts - 1 do
-            local newPartSide = Instance.new("Part")
-            newPartSide.Size = Vector3.new(partSize, 1, partSize)
-            newPartSide.Position = startPosition + Vector3.new(x * partSize, 0, z * partSize)
-            newPartSide.Anchored = true
-            newPartSide.Transparency = 1
-            newPartSide.CanCollide = true
-            newPartSide.Name = "Part_Side_" .. x .. "_" .. z
-            newPartSide.Parent = workspace
-            table.insert(parts, newPartSide)
-            
-            local newPartLeftRight = Instance.new("Part")
-            newPartLeftRight.Size = Vector3.new(partSize, 1, partSize)
-            newPartLeftRight.Position = startPosition + Vector3.new(-x * partSize, 0, z * partSize)
-            newPartLeftRight.Anchored = true
-            newPartLeftRight.Transparency = 1
-            newPartLeftRight.CanCollide = true
-            newPartLeftRight.Name = "Part_LeftRight_" .. x .. "_" .. z
-            newPartLeftRight.Parent = workspace
-            table.insert(parts, newPartLeftRight)
-            
-            local newPartUpLeft = Instance.new("Part")
-            newPartUpLeft.Size = Vector3.new(partSize, 1, partSize)
-            newPartUpLeft.Position = startPosition + Vector3.new(-x * partSize, 0, -z * partSize)
-            newPartUpLeft.Anchored = true
-            newPartUpLeft.Transparency = 1
-            newPartUpLeft.CanCollide = true
-            newPartUpLeft.Name = "Part_UpLeft_" .. x .. "_" .. z
-            newPartUpLeft.Parent = workspace
-            table.insert(parts, newPartUpLeft)
-            
-            local newPartUpRight = Instance.new("Part")
-            newPartUpRight.Size = Vector3.new(partSize, 1, partSize)
-            newPartUpRight.Position = startPosition + Vector3.new(x * partSize, 0, -z * partSize)
-            newPartUpRight.Anchored = true
-            newPartUpRight.Transparency = 1
-            newPartUpRight.CanCollide = true
-            newPartUpRight.Name = "Part_UpRight_" .. x .. "_" .. z
-            newPartUpRight.Parent = workspace
-            table.insert(parts, newPartUpRight)
-        end
-    end
-end
-
-local function makePartsWalkthrough()
-    for _, part in ipairs(parts) do
-        if part and part.Parent then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function makePartsSolid()
-    for _, part in ipairs(parts) do
-        if part and part.Parent then
-            part.CanCollide = true
-        end
-    end
-end
-
-misc5Folder:AddSwitch("Walk on Water", function(bool)
-    if bool then
-        createParts()
-    else
-        makePartsWalkthrough()
-    end
-end)
-
 -- Add Auto Spin Wheel toggle
 misc5Folder:AddSwitch("Auto Spin Wheel", function(bool)
     _G.AutoSpinWheel = bool
@@ -2261,20 +1974,6 @@ misc5Folder:AddSwitch("Auto Spin Wheel", function(bool)
     end
 end)
 
--- Add Auto Claim Gifts toggle
-misc5Folder:AddSwitch("Auto Claim Gifts", function(bool)
-    _G.AutoClaimGifts = bool
-    
-    if bool then
-        spawn(function()
-            while _G.AutoClaimGifts and wait(1) do
-                for i = 1, 8 do
-                    game:GetService("ReplicatedStorage").rEvents.freeGiftClaimRemote:InvokeServer("claimGift", i)
-                end
-            end
-        end)
-    end
-end)
 
 -- ============================================================================
 -- PETS TAB
@@ -3158,122 +2857,6 @@ task.spawn(function()
 end)
 
 print("📊 Calculator cargado - Iniciará automáticamente en 2 segundos")
-
--- Crear el folder principal
-local DamageFolder = DamageTab:AddFolder("Damage Calculator")
-
--- CALCULADORA DE DAMAGE
-local baseStrength = 0
-local resultadoLabels = {}
-
-DamageFolder:AddLabel("Pack Damage Calculator")
-DamageFolder:AddTextBox("Base Strength (ej: 1.27Qa, T, B)", function(text)
-    local unidades = { ["QA"] = 1e15, ["T"] = 1e12, ["B"] = 1e9 }
-    text = text:upper()
-    for u, m in pairs(unidades) do
-        if text:find(u) then
-            local num = tonumber(text:match("(%d+%.?%d*)"))
-            if num then
-                baseStrength = num * m
-                return
-            end
-        end
-    end
-    baseStrength = tonumber(text:match("(%d+%.?%d*)")) or 0
-end)
-
-local mensajeLabel = DamageFolder:AddLabel("")
-for i = 1, 8 do
-    resultadoLabels[i] = DamageFolder:AddLabel(string.format("%d pack(s): -", i))
-end
-
-DamageFolder:AddButton("Calcular Damage", function()
-    if baseStrength <= 0 then
-        mensajeLabel.Text = "Ingresa un valor válido."
-        for i = 1, 8 do
-            resultadoLabels[i].Text = string.format("%d pack(s): -", i)
-        end
-        return
-    end
-    mensajeLabel.Text = ""
-    local danoAjustado = baseStrength * 0.10
-    local incremento = 0.335
-    for pack = 1, 8 do
-        local mult = 1 + (pack * incremento)
-        local valor = danoAjustado * mult
-        local disp
-        if valor >= 1e15 then
-            disp = string.format("%.3f Qa", valor / 1e15)
-        elseif valor >= 1e12 then
-            disp = string.format("%.2f T", valor / 1e12)
-        elseif valor >= 1e9 then
-            disp = string.format("%.2f B", valor / 1e9)
-        else
-            disp = tostring(math.floor(valor))
-        end
-        resultadoLabels[pack].Text = string.format("%d pack(s): %s", pack, disp)
-    end
-end)
-
--- CALCULADORA DE DURABILIDAD
-local DurabilityFolder = DamageTab:AddFolder("Durability Calculator")
-local baseDurability = 0
-local durabilityLabels = {}
-
-DurabilityFolder:AddLabel("Pack Durability Calculator")
-DurabilityFolder:AddTextBox("Base Durability (ej: 500K, 1.5M, 2B)", function(text)
-    local unidades = { ["K"] = 1e3, ["M"] = 1e6, ["B"] = 1e9, ["T"] = 1e12, ["QA"] = 1e15 }
-    text = text:upper()
-    for u, m in pairs(unidades) do
-        if text:find(u) then
-            local num = tonumber(text:match("(%d+%.?%d*)"))
-            if num then
-                baseDurability = num * m
-                return
-            end
-        end
-    end
-    baseDurability = tonumber(text:match("(%d+%.?%d*)")) or 0
-end)
-
-local mensajeDurabilityLabel = DurabilityFolder:AddLabel("")
-for i = 1, 8 do
-    durabilityLabels[i] = DurabilityFolder:AddLabel(string.format("%d pack(s): -", i))
-end
-
-DurabilityFolder:AddButton("Calcular Durabilidad", function()
-    if baseDurability <= 0 then
-        mensajeDurabilityLabel.Text = "Ingresa un valor válido."
-        for i = 1, 8 do
-            durabilityLabels[i].Text = string.format("%d pack(s): -", i)
-        end
-        return
-    end
-    mensajeDurabilityLabel.Text = ""
-    -- Incremento de durabilidad por pack (ajusta según el juego)
-    local incrementoPorPack = 0.25 -- 25% por pack, ajusta según sea necesario
-    
-    for pack = 1, 8 do
-        local mult = 1 + (pack * incrementoPorPack)
-        local valor = baseDurability * mult
-        local disp
-        if valor >= 1e15 then
-            disp = string.format("%.3f Qa", valor / 1e15)
-        elseif valor >= 1e12 then
-            disp = string.format("%.2f T", valor / 1e12)
-        elseif valor >= 1e9 then
-            disp = string.format("%.2f B", valor / 1e9)
-        elseif valor >= 1e6 then
-            disp = string.format("%.2f M", valor / 1e6)
-        elseif valor >= 1e3 then
-            disp = string.format("%.2f K", valor / 1e3)
-        else
-            disp = tostring(math.floor(valor))
-        end
-        durabilityLabels[pack].Text = string.format("%d pack(s): %s", pack, disp)
-    end
-end)
-
 -- ============================================================================
 -- KILLER TAB
 -- ============================================================================
@@ -4128,64 +3711,523 @@ spawn(function()
     end
 end)
 
+local DamageFolder = DamageTab:AddFolder("Damage Calculator")
+
+-- CALCULADORA DE DAMAGE
+local baseStrength = 0
+local resultadoLabels = {}
+
+DamageFolder:AddLabel("Pack Damage Calculator")
+DamageFolder:AddTextBox("Base Strength (ej: 1.27Qa, T, B)", function(text)
+    local unidades = { ["QA"] = 1e15, ["T"] = 1e12, ["B"] = 1e9 }
+    text = text:upper()
+    for u, m in pairs(unidades) do
+        if text:find(u) then
+            local num = tonumber(text:match("(%d+%.?%d*)"))
+            if num then
+                baseStrength = num * m
+                return
+            end
+        end
+    end
+    baseStrength = tonumber(text:match("(%d+%.?%d*)")) or 0
+end)
+
+local mensajeLabel = DamageFolder:AddLabel("")
+for i = 1, 8 do
+    resultadoLabels[i] = DamageFolder:AddLabel(string.format("%d pack(s): -", i))
+end
+
+DamageFolder:AddButton("Calcular Damage", function()
+    if baseStrength <= 0 then
+        mensajeLabel.Text = "Ingresa un valor válido."
+        for i = 1, 8 do
+            resultadoLabels[i].Text = string.format("%d pack(s): -", i)
+        end
+        return
+    end
+    mensajeLabel.Text = ""
+    local danoAjustado = baseStrength * 0.10
+    local incremento = 0.335
+    for pack = 1, 8 do
+        local mult = 1 + (pack * incremento)
+        local valor = danoAjustado * mult
+        local disp
+        if valor >= 1e15 then
+            disp = string.format("%.3f Qa", valor / 1e15)
+        elseif valor >= 1e12 then
+            disp = string.format("%.2f T", valor / 1e12)
+        elseif valor >= 1e9 then
+            disp = string.format("%.2f B", valor / 1e9)
+        else
+            disp = tostring(math.floor(valor))
+        end
+        resultadoLabels[pack].Text = string.format("%d pack(s): %s", pack, disp)
+    end
+end)
+
+-- CALCULADORA DE DURABILIDAD
+local DurabilityFolder = DamageTab:AddFolder("Durability Calculator")
+local baseDurability = 0
+local durabilityLabels = {}
+
+DurabilityFolder:AddLabel("Pack Durability Calculator")
+DurabilityFolder:AddTextBox("Base Durability (ej: 500K, 1.5M, 2B)", function(text)
+    local unidades = { ["K"] = 1e3, ["M"] = 1e6, ["B"] = 1e9, ["T"] = 1e12, ["QA"] = 1e15 }
+    text = text:upper()
+    for u, m in pairs(unidades) do
+        if text:find(u) then
+            local num = tonumber(text:match("(%d+%.?%d*)"))
+            if num then
+                baseDurability = num * m
+                return
+            end
+        end
+    end
+    baseDurability = tonumber(text:match("(%d+%.?%d*)")) or 0
+end)
+
+local mensajeDurabilityLabel = DurabilityFolder:AddLabel("")
+for i = 1, 8 do
+    durabilityLabels[i] = DurabilityFolder:AddLabel(string.format("%d pack(s): -", i))
+end
+
+DurabilityFolder:AddButton("Calcular Durabilidad", function()
+    if baseDurability <= 0 then
+        mensajeDurabilityLabel.Text = "Ingresa un valor válido."
+        for i = 1, 8 do
+            durabilityLabels[i].Text = string.format("%d pack(s): -", i)
+        end
+        return
+    end
+    mensajeDurabilityLabel.Text = ""
+    -- Incremento de durabilidad por pack (ajusta según el juego)
+    local incrementoPorPack = 0.25 -- 25% por pack, ajusta según sea necesario
+    
+    for pack = 1, 8 do
+        local mult = 1 + (pack * incrementoPorPack)
+        local valor = baseDurability * mult
+        local disp
+        if valor >= 1e15 then
+            disp = string.format("%.3f Qa", valor / 1e15)
+        elseif valor >= 1e12 then
+            disp = string.format("%.2f T", valor / 1e12)
+        elseif valor >= 1e9 then
+            disp = string.format("%.2f B", valor / 1e9)
+        elseif valor >= 1e6 then
+            disp = string.format("%.2f M", valor / 1e6)
+        elseif valor >= 1e3 then
+            disp = string.format("%.2f K", valor / 1e3)
+        else
+            disp = tostring(math.floor(valor))
+        end
+        durabilityLabels[pack].Text = string.format("%d pack(s): %s", pack, disp)
+    end
+end)
+
+-- ============================================================================
+-- Killing v2 - Script Mejorado
+-- ============================================================================
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Variables globales
+local targetName = ""
+local autoTP = false
+local autoGS = false
+local tpConnection = nil
+local gsConnection = nil
+
+-- ============================================================================
+-- Funciones auxiliares
+-- ============================================================================
+
+-- Función para validar si un jugador existe y está disponible
+function isValidTarget(playerName)
+    if not playerName or playerName == "" then
+        return false
+    end
+    
+    local target = Players:FindFirstChild(playerName)
+    return target and target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+end
+
+-- Función para obtener el HumanoidRootPart del jugador local
+function getLocalHRP()
+    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+end
+
+-- Función de teleporte segura
+function safeTeleport(targetPlayer)
+    local localHRP = getLocalHRP()
+    if not localHRP then
+        return false
+    end
+    
+    local targetHRP = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then
+        return false
+    end
+    
+    -- Teleportar con manejo de errores
+    pcall(function()
+        localHRP.CFrame = targetHRP.CFrame + Vector3.new(0, 3, 0)
+    end)
+    
+    return true
+end
+
+-- ============================================================================
+-- Sistema de Auto Teleport
+-- ============================================================================
+
+function startAutoTeleport()
+    if tpConnection then
+        tpConnection:Disconnect()
+    end
+    
+    tpConnection = task.spawn(function()
+        while autoTP do
+            if targetName and targetName ~= "" then
+                local target = Players:FindFirstChild(targetName)
+                if isValidTarget(targetName) then
+                    safeTeleport(target)
+                end
+            end
+            task.wait(0.3)
+        end
+    end)
+end
+
+function stopAutoTeleport()
+    if tpConnection then
+        tpConnection:Disconnect()
+        tpConnection = nil
+    end
+end
+
+-- ============================================================================
+-- Sistema de Auto Ground Slam
+-- ============================================================================
+
+local function findGroundSlamTool()
+    -- Buscar en la mochila primero
+    local backpackTool = LocalPlayer.Backpack:FindFirstChild("Ground Slam")
+    if backpackTool then
+        return backpackTool, "backpack"
+    end
+    
+    -- Buscar en el personaje
+    local characterTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Ground Slam")
+    if characterTool then
+        return characterTool, "character"
+    end
+    
+    return nil, nil
+end
+
+local function equipTool(tool)
+    if tool and tool.Parent == LocalPlayer.Backpack then
+        pcall(function()
+            tool.Parent = LocalPlayer.Character
+        end)
+        task.wait(0.1) -- Pequeña pausa para que se equipe
+    end
+end
+
+function activateTool(tool)
+    if tool and tool.Parent == LocalPlayer.Character then
+        pcall(function()
+            -- Método más directo para Ground Slam
+            if tool:FindFirstChild("Handle") and tool.Handle:FindFirstChild("ClickDetector") then
+                fireclickdetector(tool.Handle.ClickDetector)
+            else
+                -- Activar usando el evento Activated
+                tool.Activated:Fire()
+            end
+        end)
+    end
+end
+
+local function startAutoGroundSlam()
+    if gsConnection then
+        gsConnection:Disconnect()
+    end
+    
+    gsConnection = task.spawn(function()
+        while autoGS do
+            local tool, location = findGroundSlamTool()
+            if tool then
+                if location == "backpack" then
+                    equipTool(tool)
+                end
+                activateTool(tool)
+            end
+            task.wait(0.2)
+        end
+    end)
+end
+
+local function stopAutoGroundSlam()
+    if gsConnection then
+        gsConnection:Disconnect()
+        gsConnection = nil
+    end
+end
+
+-- ============================================================================
+-- Interfaz de Usuario
+-- ============================================================================
+
+-- TextBox para el nombre del jugador objetivo
+killingv2:CreateTextbox("Nombre del Jugador", function(value)
+    targetName = value or ""
+    print("Jugador objetivo establecido:", targetName)
+end)
+
+-- Switch para Auto Teleport
+killingv2:CreateSwitch("Auto Teleport", false, function(state)
+    autoTP = state
+    
+    if autoTP then
+        if targetName == "" then
+            warn("⚠️ Debes escribir el nombre de un jugador primero")
+            return
+        end
+        print("✅ Auto Teleport activado para:", targetName)
+        startAutoTeleport()
+    else
+        print("❌ Auto Teleport desactivado")
+        stopAutoTeleport()
+    end
+end)
+
+-- Switch para Auto Ground Slam
+killingv2:CreateSwitch("Auto Ground Slam", false, function(state)
+    autoGS = state
+    
+    if autoGS then
+        print("✅ Auto Ground Slam activado")
+        startAutoGroundSlam()
+    else
+        print("❌ Auto Ground Slam desactivado")
+        stopAutoGroundSlam()
+    end
+end)
+
+-- ============================================================================
+-- Limpieza al salir del juego
+-- ============================================================================
+
+Players.PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        stopAutoTeleport()
+        stopAutoGroundSlam()
+    end
+end)
+
+-- ============================================================================
+-- Eventos adicionales
+-- ============================================================================
+
+-- Detener auto TP si el jugador objetivo se va
+Players.PlayerRemoving:Connect(function(player)
+    if player.Name == targetName and autoTP then
+        warn("⚠️ El jugador objetivo se desconectó")
+        autoTP = false
+        stopAutoTeleport()
+    end
+end)
+
+print("🚀 Script Killing v2 cargado correctamente")
+
 -- ============================================================================
 -- TELEPORT TAB
 -- ============================================================================
 
-local function teleportTo(position)
-    safeCall(function()
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-        humanoidRootPart.CFrame = position
-    end)
-end
+local teleportTab = window:AddTab("Teleport")
 
-local teleportButtons = {
-    {"Spawn", CFrame.new(2, 8, 115)},
-    {"Secret Area", CFrame.new(1947, 2, 6191)},
-    {"Tiny Area", CFrame.new(-34, 7, 1903)},
-    {"Frozen", CFrame.new(-2600.00244, 3.67686558, -403.884369, 0.0873617008, 1.0482899e-09, 0.99617666, 3.07204253e-08, 1, -3.7464023e-09, -0.99617666, 3.09302628e-08, 0.0873617008)},
-    {"Mythical", CFrame.new(2255, 7, 1071)},
-    {"Inferno", CFrame.new(-6768, 7, -1287)},
-    {"Legend", CFrame.new(4604, 991, -3887)},
-    {"Muscle King", CFrame.new(-8646, 17, -5738)},
-    {"Jungle", CFrame.new(-8659, 6, 2384)},
-    {"Lava Brawl", CFrame.new(4471, 119, -8836)},
-    {"Desert Brawl", CFrame.new(960, 17, -7398)},
-    {"Beach Brawl", CFrame.new(-1849, 20, -6335)}
-}
+teleportTab:AddButton("Spawn", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(2, 8, 115)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Inicio",
+        Duration = 0
+    })
+end)
 
-for _, buttonData in pairs(teleportButtons) do
-    Teleport:AddButton(buttonData[1], function()
-        teleportTo(buttonData[2])
-    end)
-end
+teleportTab:AddButton("Secret Area", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(1947, 2, 6191)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Área Secreta",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Tiny Island", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(-34, 7, 1903)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Área Diminuta",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Teleport Frozen", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(- 2600.00244, 3.67686558, - 403.884369, 0.0873617008, 1.0482899e-09, 0.99617666, 3.07204253e-08, 1, - 3.7464023e-09, - 0.99617666, 3.09302628e-08, 0.0873617008)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Área Congelada",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Mythical", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(2255, 7, 1071)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Área Mítica",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Inferno", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(-6768, 7, -1287)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Infierno",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Legend", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(4604, 991, -3887)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado a Leyenda",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Muscle King Gym", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(-8646, 17, -5738)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Rey Musculoso",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Jungle", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(-8659, 6, 2384)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado a la Jungla",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Brawl Lava", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(4471, 119, -8836)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Combate de Lava",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Brawl Desert", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(960, 17, -7398)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Combate del Desierto",
+        Duration = 0
+    })
+end)
+
+teleportTab:AddButton("Brawl Regular", function()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoidRootPart.CFrame = CFrame.new(-1849, 20, -6335)
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Teletransporte",
+        Text = "Teletransportado al Combate de Playa",
+        Duration = 0
+    })
+end)
 
 -- ============================================================================
 -- CREDITS TAB
 -- ============================================================================
 
-local credits = {
-    "╭──────────────────────────╮",
-    "   Script hecho por Isabella",
-    "╰──────────────────────────╯",
-    "",
-    "User de Roblox: MissSherya",
-    "Instagram: Sherya_Luck",
-    "TikTok: Sherya6000",
-    "Discord: isabella_hrz",
-    "",
-    "Thanks por usar el script",
-    "",
-    "Recomienda el script para hacer mas actualizaciones",
-    "Hago peticiones de otros juegos",
-    "Diviertete amiguito"
-}
-
-for _, credit in pairs(credits) do
-    creditsTab:AddLabel(credit)
-end
+creditsTab:AddLabel("╭──────────────────────────╮")
+creditsTab:AddLabel(" Script hecho por Isabella")
+creditsTab:AddLabel("╰──────────────────────────╯")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("Thank you for helping me")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("Havoc - My love is only mine and no one else's.")
+creditsTab:AddLabel("Jxssxn - My nephew <3")
+creditsTab:AddLabel("Alejandro - Un noob")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("User de Roblox: MissSherya")
+creditsTab:AddLabel("Instagram: Sherya_Luck")
+creditsTab:AddLabel("TikTok: Sherya6000")
+creditsTab:AddLabel("Discord: isabella_hrz")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("Thanks por usar el script")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("Recomienda el script para hacer mas actualizaciones")
+creditsTab:AddLabel("Hago peticiones de otros juegos")
+creditsTab:AddLabel("Diviertete amiguito")
 
 creditsTab:AddButton("Servidor Discord", function()
     setclipboard("https://discord.gg/Wr9abVw3UR")
