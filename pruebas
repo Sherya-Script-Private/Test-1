@@ -48,7 +48,6 @@ local Stats = window:AddTab("Stats")
 local Calculator = window:AddTab("Calculator")
 local Killing = window:AddTab("Killer")
 local DamageTab = window:AddTab("Damage")
-local killingv2 = window:AddTab("Killer v2")
 local Teleport = window:AddTab("Teleport")
 local creditsTab = window:AddTab("Credits")
 
@@ -3829,163 +3828,35 @@ end)
 -- TELEPORT TAB
 -- ============================================================================
 
-local teleportTab = window:AddTab("Teleport")
+local function teleportTo(position)
+    safeCall(function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        humanoidRootPart.CFrame = position
+    end)
+end
 
-teleportTab:AddButton("Spawn", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(2, 8, 115)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Inicio",
-        Duration = 0
-    })
-end)
+local teleportButtons = {
+    {"Spawn", CFrame.new(2, 8, 115)},
+    {"Secret Area", CFrame.new(1947, 2, 6191)},
+    {"Tiny Area", CFrame.new(-34, 7, 1903)},
+    {"Frozen", CFrame.new(-2600.00244, 3.67686558, -403.884369, 0.0873617008, 1.0482899e-09, 0.99617666, 3.07204253e-08, 1, -3.7464023e-09, -0.99617666, 3.09302628e-08, 0.0873617008)},
+    {"Mythical", CFrame.new(2255, 7, 1071)},
+    {"Inferno", CFrame.new(-6768, 7, -1287)},
+    {"Legend", CFrame.new(4604, 991, -3887)},
+    {"Muscle King", CFrame.new(-8646, 17, -5738)},
+    {"Jungle", CFrame.new(-8659, 6, 2384)},
+    {"Lava Brawl", CFrame.new(4471, 119, -8836)},
+    {"Desert Brawl", CFrame.new(960, 17, -7398)},
+    {"Beach Brawl", CFrame.new(-1849, 20, -6335)}
+}
 
-teleportTab:AddButton("Secret Area", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(1947, 2, 6191)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Área Secreta",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Tiny Island", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(-34, 7, 1903)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Área Diminuta",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Teleport Frozen", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(- 2600.00244, 3.67686558, - 403.884369, 0.0873617008, 1.0482899e-09, 0.99617666, 3.07204253e-08, 1, - 3.7464023e-09, - 0.99617666, 3.09302628e-08, 0.0873617008)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Área Congelada",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Mythical", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(2255, 7, 1071)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Área Mítica",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Inferno", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(-6768, 7, -1287)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Infierno",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Legend", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(4604, 991, -3887)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado a Leyenda",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Muscle King Gym", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(-8646, 17, -5738)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Rey Musculoso",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Jungle", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(-8659, 6, 2384)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado a la Jungla",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Brawl Lava", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(4471, 119, -8836)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Combate de Lava",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Brawl Desert", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(960, 17, -7398)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Combate del Desierto",
-        Duration = 0
-    })
-end)
-
-teleportTab:AddButton("Brawl Regular", function()
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(-1849, 20, -6335)
-    
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Teletransporte",
-        Text = "Teletransportado al Combate de Playa",
-        Duration = 0
-    })
-end)
+for _, buttonData in pairs(teleportButtons) do
+    Teleport:AddButton(buttonData[1], function()
+        teleportTo(buttonData[2])
+    end)
+end
 
 -- ============================================================================
 -- CREDITS TAB
@@ -4091,4 +3962,3 @@ game.Players.PlayerAdded:Connect(function(player)
         end
     end
 end)
-
